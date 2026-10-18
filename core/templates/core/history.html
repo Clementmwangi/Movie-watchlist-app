@@ -1,0 +1,41 @@
+{% extends "core/base.html" %}
+{% load cine %}
+{% block title %}History · CinePair{% endblock %}
+{% block content %}
+<h1 class="font-display text-4xl font-extrabold tracking-tight">History</h1>
+
+<section class="mt-6 rounded-lg bg-panel p-6">
+  <h2 class="font-display text-xl font-extrabold">Who picks better?</h2>
+  <p class="mt-1 text-sm text-mute">Average rating the watcher gave each person's picks. Only counts picks you've both rated.</p>
+  <div class="mt-4 grid gap-4 sm:grid-cols-2">
+    <div><p class="text-mute">Your picks</p>
+      <p class="font-display text-4xl font-extrabold text-marquee">{% if scoreboard.mine %}{{ scoreboard.mine }}{% else %}n/a{% endif %}</p>
+      <p class="text-xs text-mute">{{ scoreboard.mine_n }} rated pick{{ scoreboard.mine_n|pluralize }}</p></div>
+    <div><p class="text-mute">{{ partner.display_name }}'s picks</p>
+      <p class="font-display text-4xl font-extrabold text-marquee">{% if scoreboard.theirs %}{{ scoreboard.theirs }}{% else %}n/a{% endif %}</p>
+      <p class="text-xs text-mute">{{ scoreboard.theirs_n }} rated pick{{ scoreboard.theirs_n|pluralize }}</p></div>
+  </div>
+</section>
+
+<ul class="mt-8 divide-y divide-white/10">
+  {% for row in rows %}
+  {% with p=row.pick hidden=row.pick|hidden_for:request.user.profile %}
+  <li class="flex items-center gap-4 py-4">
+    {% if hidden %}<div class="flex h-20 w-14 shrink-0 items-center justify-center rounded bg-curtain font-display text-2xl font-extrabold">?</div>
+    {% elif p.poster_path %}<img src="{{ p.poster_path|tmdb:'w154' }}" alt="" class="h-20 w-14 shrink-0 rounded object-cover" loading="lazy">
+    {% else %}<div class="h-20 w-14 shrink-0 rounded bg-white/10"></div>{% endif %}
+    <div class="min-w-0 flex-1">
+      <a href="{% url 'pick_detail' p.pk %}" class="font-display text-lg font-extrabold hover:text-marquee">{% if hidden %}Mystery pick{% else %}{{ p.title }}{% endif %}</a>
+      <p class="text-sm text-mute">{{ p.picker.display_name }} picked it for {{ p.assignee.display_name }}, week of {{ p.week_start_date|date:"j M Y" }}. {% if p.status != "completed" %}Not finished.{% endif %}</p>
+    </div>
+    <div class="text-right text-sm">
+      <p>You: <span class="font-bold text-marquee">{% if row.mine %}{{ row.mine.rating }}{% else %}not rated{% endif %}</span></p>
+      <p>{{ partner.display_name }}: <span class="font-bold text-marquee">{% if row.theirs %}{{ row.theirs.rating }}{% elif row.theirs_waiting %}rated, hidden{% else %}not rated{% endif %}</span></p>
+    </div>
+  </li>
+  {% endwith %}
+  {% empty %}
+  <li class="py-10 text-mute">Nothing here yet. Finished and expired picks land here.</li>
+  {% endfor %}
+</ul>
+{% endblock %}

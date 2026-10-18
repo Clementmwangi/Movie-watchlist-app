@@ -1,0 +1,30 @@
+{% extends "core/base.html" %}
+{% block content %}
+<h1 class="font-display text-4xl font-extrabold tracking-tight">This week</h1>
+<p class="mt-1 text-mute">{{ week_start|date:"j M" }} to {{ week_end|date:"j M" }}. Picks close on Sunday night.</p>
+
+<div class="mt-8 grid gap-8 md:grid-cols-2">
+  <section>
+    <h2 class="mb-3 font-display text-lg font-semibold">Watching for {{ partner.display_name }}</h2>
+    {% if for_me %}
+      {% include "core/_ticket.html" with pick=for_me role="for_you" profile=request.user.profile %}
+    {% else %}
+      <div class="rounded-lg border border-dashed border-white/20 p-6 text-mute">
+        {{ partner.display_name }} hasn't picked yet. Your watchlist is empty until they do.
+      </div>
+    {% endif %}
+  </section>
+
+  <section>
+    <h2 class="mb-3 font-display text-lg font-semibold">Your pick for {{ partner.display_name }}</h2>
+    {% if by_me %}
+      {% include "core/_ticket.html" with pick=by_me role="by_you" profile=request.user.profile %}
+    {% else %}
+      <div class="rounded-lg border border-dashed border-white/20 p-6">
+        <p class="text-mute">You haven't chosen anything for {{ partner.display_name }} yet.</p>
+        <a href="{% url 'pick_new' %}" class="mt-4 inline-block rounded-md bg-marquee px-4 py-2 font-bold text-base hover:brightness-110">Pick something</a>
+      </div>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

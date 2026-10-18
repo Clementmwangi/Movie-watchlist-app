@@ -1,0 +1,45 @@
+{% load cine %}
+{# expects: pick, role ("for_you" | "by_you"), profile #}
+{% with hidden=pick|hidden_for:profile %}
+<article class="ticket shadow-xl shadow-black/40">
+  <div class="flex gap-4 p-5">
+    {% if hidden %}
+      <div class="flex h-36 w-24 shrink-0 items-center justify-center rounded bg-curtain font-display text-5xl font-extrabold text-paper">?</div>
+    {% elif pick.poster_path %}
+      <img src="{{ pick.poster_path|tmdb:'w342' }}" alt="" class="h-36 w-24 shrink-0 rounded object-cover" loading="lazy">
+    {% else %}
+      <div class="h-36 w-24 shrink-0 rounded bg-black/10"></div>
+    {% endif %}
+    <div class="min-w-0">
+      <p class="text-sm text-[#6d5266]">{% if role == "for_you" %}From {{ pick.picker.display_name }}{% else %}Your pick for {{ pick.assignee.display_name }}{% endif %}</p>
+      <h2 class="mt-1 font-display text-2xl font-extrabold leading-tight">{% if hidden %}Mystery pick{% else %}{{ pick.title }}{% endif %}</h2>
+      {% if hidden %}
+        <p class="mt-2 text-sm text-[#6d5266]">Title, poster and length stay sealed until you reveal it.</p>
+      {% else %}
+        <p class="mt-2 text-sm text-[#6d5266]">{{ pick.get_media_type_display }}, {{ pick.total_episodes }} episode{{ pick.total_episodes|pluralize }}{% if pick.is_blind_pick %}, blind pick{% endif %}</p>
+      {% endif %}
+    </div>
+  </div>
+  <div class="perf"></div>
+  <div class="flex items-center gap-4 p-5">
+    <div class="flex-1">
+      {% if not hidden %}
+      <div class="h-2 overflow-hidden rounded-full bg-black/15"><div class="bar h-full bg-curtain" style="width: {{ pick.progress_pct }}%"></div></div>
+      {% endif %}
+      <p class="mt-2 text-sm font-medium">
+        {% if hidden %}{{ pick.get_status_display }}
+        {% elif pick.status == "completed" %}Finished
+        {% else %}{{ pick.episodes_done }} of {{ pick.total_episodes }} watched{% endif %}
+        {% if pick.status != "completed" %}
+          <span class="font-normal text-[#6d5266]">
+            {% if pick.is_overdue %}(overdue){% elif pick.days_left == 1 %}(last day){% else %}({{ pick.days_left }} days left){% endif %}
+          </span>
+        {% endif %}
+      </p>
+    </div>
+    <a href="{% url 'pick_detail' pick.pk %}" class="rounded-md bg-curtain px-4 py-2 text-sm font-bold text-paper hover:bg-[#c9304b]">
+      {% if hidden %}Open{% elif pick.status == "completed" %}Ratings{% elif role == "for_you" %}Track{% else %}View{% endif %}
+    </a>
+  </div>
+</article>
+{% endwith %}

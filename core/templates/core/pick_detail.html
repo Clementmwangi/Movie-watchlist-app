@@ -1,0 +1,109 @@
+{% extends "core/base.html" %}
+{% load cine %}
+{% block title %}{% if hidden %}Mystery pick{% else %}{{ pick.title }}{% endif %} · CinePair{% endblock %}
+{% block content %}
+
+{% if hidden %}
+<div class="mx-auto max-w-md text-center">
+  <div class="mx-auto flex h-56 w-40 items-center justify-center rounded bg-curtain font-display text-8xl font-extrabold">?</div>
+  <h1 class="mt-6 font-display text-4xl font-extrabold">Mystery pick from {{ pick.picker.display_name }}</h1>
+  <p class="mt-3 text-mute">You don't know the title, the length, or whether it's a film or a series. Reveal it when you're ready to start. You can't undo that.</p>
+  <form method="post" action="{% url 'pick_reveal' pick.pk %}" class="mt-6">{% csrf_token %}
+    <button class="rounded-md bg-marquee px-6 py-3 font-bold text-base hover:brightness-110">Reveal it</button>
+  </form>
+</div>
+{% else %}
+
+<div class="relative -mx-4 overflow-hidden rounded-lg sm:mx-0">
+  {% if pick.backdrop_path %}<img src="{{ pick.backdrop_path|tmdb:'w1280' }}" alt="" class="absolute inset-0 h-full w-full object-cover opacity-40">{% endif %}
+  <div class="absolute inset-0 bg-gradient-to-t from-base via-base/70 to-transparent"></div>
+  <div class="relative flex flex-col gap-6 p-6 pt-24 sm:flex-row sm:items-end sm:pt-32">
+    {% if pick.poster_path %}<img src="{{ pick.poster_path|tmdb:'w342' }}" alt="Poster for {{ pick.title }}" class="w-36 shrink-0 rounded shadow-2xl shadow-black/60">{% endif %}
+    <div>
+      <h1 class="font-display text-5xl font-extrabold tracking-tight">{{ pick.title }}</h1>
+      <p class="mt-2 text-mute">{{ pick.get_media_type_display }}, {{ pick.total_episodes }} episode{{ pick.total_episodes|pluralize }}. Picked by {{ pick.picker.display_name }} for {{ pick.assignee.display_name }}, due {{ pick.week_end_date|date:"l j M" }}.</p>
+      {% if pick.overview %}<p class="mt-4 max-w-2xl leading-relaxed">{{ pick.overview }}</p>{% endif %}
+    </div>
+  </div>
+</div>
+
+<section class="mt-8 rounded-lg bg-panel p-6" x-data="tracker({{ done }}, {{ pick.total_episodes }}, '{{ pick.get_status_display }}')">
+  <div class="flex items-baseline justify-between">
+    <h2 class="font-display text-2xl font-extrabold">{% if is_assignee %}Your progress{% else %}{{ pick.assignee.display_name }}'s progress{% endif %}</h2>
+    <p class="text-sm text-mute"><span x-text="status"></span>, <span x-text="done"></span> of {{ pick.total_episodes }}</p>
+  </div>
+  <div class="mt-3 h-3 overflow-hidden rounded-full bg-black/30"><div class="bar h-full bg-marquee" :style="`width:${pct}%`"></div></div>
+  {% if pick.status != "completed" and pick.total_episodes > 1 %}
+    <p class="mt-3 text-sm {% if pick.is_overdue %}text-curtain{% else %}text-mute{% endif %}">
+      {% if pick.is_overdue %}Overdue. The week ended {{ pick.week_end_date|date:"l j M" }}.{% else %}About {{ pick.required_pace }} episodes a day from here to finish on time.{% endif %}
+    </p>
+  {% endif %}
+  <p x-show="error" x-cloak x-text="error" class="mt-3 text-sm text-curtain" role="alert"></p>
+
+  <div class="mt-6 space-y-3">
+    {% for season, eps in seasons %}
+    <div x-data="{ open: {% if forloop.first or seasons|length == 1 %}true{% else %}false{% endif %} }" class="rounded border border-white/10">
+      <button type="button" @click="open = !open" :aria-expanded="open" class="flex w-full items-center justify-between px-4 py-3 text-left font-medium">
+        {% if pick.media_type == "movie" %}The film{% else %}Season {{ season }}{% endif %}
+        <span class="text-sm text-mute" x-text="open ? 'Hide' : 'Show'"></span>
+      </button>
+      <ul x-show="open" {% if not forloop.first and seasons|length > 1 %}x-cloak{% endif %} class="grid gap-1 px-4 pb-4 sm:grid-cols-2">
+        {% for ep in eps %}
+        <li><label class="flex items-center gap-3 rounded px-2 py-1.5 {% if is_assignee %}cursor-pointer hover:bg-white/5{% endif %}">
+          <input type="checkbox" class="h-4 w-4 accent-[#f4c36a]" {% if ep.is_completed %}checked{% endif %} {% if not is_assignee %}disabled{% endif %}
+                 @change="toggle($event, '{% url 'episode_toggle' pick.pk ep.pk %}')">
+          <span>{% if pick.media_type == "movie" %}Watched it{% else %}Episode {{ ep.episode_number }}{% endif %}</span>
+        </label></li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endfor %}
+  </div>
+  {% if not is_assignee %}<p class="mt-4 text-sm text-mute">Only {{ pick.assignee.display_name }} can tick these off.</p>{% endif %}
+</section>
+
+<section class="mt-8">
+  <h2 class="font-display text-2xl font-extrabold">Ratings</h2>
+  {% if pick.status != "completed" %}
+    <p class="mt-2 text-mute">Ratings open once every episode is ticked. Neither of you sees the other's until you've both written your own.</p>
+  {% else %}
+    {% if mine %}
+      <div class="mt-4 rounded-lg bg-panel p-5">
+        <p class="text-sm text-mute">Your rating</p>
+        <p class="font-display text-4xl font-extrabold text-marquee">{{ mine.rating }}<span class="text-lg text-mute"> / 10</span></p>
+        {% if mine.comment %}<p class="mt-3">{{ mine.comment }}</p>{% endif %}
+        {% if mine.favorite_quote_or_scene %}<p class="mt-2 text-sm text-mute">Favourite moment: {{ mine.favorite_quote_or_scene }}</p>{% endif %}
+      </div>
+      {% if theirs %}
+      <div class="mt-4 rounded-lg bg-panel p-5" x-data="{ shown: false }">
+        <p class="text-sm text-mute">{{ partner.display_name }}'s rating</p>
+        <div :class="shown ? '' : 'select-none blur-md'" :aria-hidden="!shown">
+          <p class="font-display text-4xl font-extrabold text-marquee">{{ theirs.rating }}<span class="text-lg text-mute"> / 10</span></p>
+          {% if theirs.comment %}<p class="mt-3">{{ theirs.comment }}</p>{% endif %}
+          {% if theirs.favorite_quote_or_scene %}<p class="mt-2 text-sm text-mute">Favourite moment: {{ theirs.favorite_quote_or_scene }}</p>{% endif %}
+        </div>
+        <button type="button" x-show="!shown" @click="shown = true" class="mt-3 rounded-md bg-marquee px-4 py-2 text-sm font-bold text-base">Show review (may spoil the ending)</button>
+      </div>
+      {% else %}
+        <p class="mt-4 text-mute">Waiting for {{ partner.display_name }} to rate it.</p>
+      {% endif %}
+    {% else %}
+      {% if theirs_waiting %}<p class="mt-2 rounded border border-marquee/40 bg-marquee/10 px-4 py-3 text-sm">{{ partner.display_name }} has rated this. Submit yours to unlock theirs.</p>{% endif %}
+      <form method="post" action="{% url 'review_create' pick.pk %}" class="mt-4 space-y-4 rounded-lg bg-panel p-5" x-data="{ r: 7 }">
+        {% csrf_token %}
+        <label class="block font-medium">Rating: <span class="font-display text-2xl text-marquee" x-text="Number(r).toFixed(1)"></span> / 10
+          <input type="range" name="rating" min="0" max="10" step="0.5" x-model="r" class="mt-2 w-full accent-[#f4c36a]">
+        </label>
+        <label class="block text-sm font-medium">What did you think? (hidden from {{ partner.display_name }} until they've rated too)
+          <textarea name="comment" rows="3" maxlength="2000" class="mt-1 w-full rounded border border-white/20 bg-base px-3 py-2"></textarea>
+        </label>
+        <label class="block text-sm font-medium">Favourite quote or scene
+          <input name="favorite_quote_or_scene" maxlength="255" class="mt-1 w-full rounded border border-white/20 bg-base px-3 py-2">
+        </label>
+        <button class="rounded-md bg-curtain px-5 py-2 font-bold text-paper hover:bg-[#c9304b]">Submit rating</button>
+      </form>
+    {% endif %}
+  {% endif %}
+</section>
+{% endif %}
+{% endblock %}

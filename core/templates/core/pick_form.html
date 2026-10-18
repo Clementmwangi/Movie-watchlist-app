@@ -1,0 +1,66 @@
+{% extends "core/base.html" %}
+{% block title %}Pick for {{ partner.display_name }} · CinePair{% endblock %}
+{% block content %}
+<div class="mx-auto max-w-2xl">
+  <h1 class="font-display text-4xl font-extrabold tracking-tight">Pick something for {{ partner.display_name }}</h1>
+  <p class="mt-2 text-mute">They have until {{ week_end|date:"l j M" }} to finish it. Be realistic about series.</p>
+  {% if error %}<p class="mt-6 rounded border border-curtain bg-curtain/20 px-4 py-3 text-sm">{{ error }}</p>{% endif %}
+
+  <form method="post" class="mt-8" x-data="picker()">
+    {% csrf_token %}
+    <input type="hidden" name="tmdb_id" :value="sel ? sel.tmdb_id : ''">
+    <input type="hidden" name="media_type" :value="sel ? sel.media_type : ''">
+
+    <label class="block text-sm font-medium" for="q">Search movies and series</label>
+    <input id="q" x-model="q" @input="search()" autocomplete="off" placeholder="Start typing a title" class="mt-2 w-full rounded border border-white/20 bg-panel px-4 py-3 text-lg">
+    <p x-show="loading" x-cloak class="mt-2 text-sm text-mute">Searching</p>
+    <p x-show="err" x-cloak x-text="err" class="mt-2 text-sm text-curtain"></p>
+
+    <ul x-show="results.length" x-cloak class="mt-2 divide-y divide-white/10 overflow-hidden rounded border border-white/10 bg-panel">
+      <template x-for="r in results" :key="r.media_type + r.tmdb_id">
+        <li><button type="button" @click="choose(r)" class="flex w-full gap-3 p-3 text-left hover:bg-white/5">
+          <img :src="r.poster_path ? 'https://image.tmdb.org/t/p/w92' + r.poster_path : ''" alt="" class="h-16 w-11 shrink-0 rounded bg-black/30 object-cover">
+          <span class="min-w-0"><span class="block font-bold" x-text="r.title + (r.year ? ' (' + r.year + ')' : '')"></span>
+            <span class="block text-xs text-marquee" x-text="r.media_type === 'tv' ? 'Series' : 'Movie'"></span>
+            <span class="block truncate text-sm text-mute" x-text="r.overview"></span></span>
+        </button></li>
+      </template>
+    </ul>
+
+    <div x-show="sel" x-cloak class="mt-6 flex gap-4 rounded border border-marquee/40 bg-marquee/10 p-4">
+      <img :src="sel && sel.poster_path ? 'https://image.tmdb.org/t/p/w154' + sel.poster_path : ''" alt="" class="h-24 w-16 rounded object-cover">
+      <div><p class="text-sm text-mute">Selected</p><p class="font-display text-xl font-extrabold" x-text="sel && sel.title"></p></div>
+    </div>
+
+    <label class="mt-6 flex items-start gap-3 rounded border border-white/10 bg-panel p-4">
+      <input type="checkbox" name="is_blind_pick" class="mt-1 h-4 w-4 accent-[#b3263f]">
+      <span><span class="block font-medium">Blind pick</span>
+        <span class="text-sm text-mute">{{ partner.display_name }} sees only "Mystery pick" until they choose to reveal it. The title, poster and length are withheld by the server, not just blurred.</span></span>
+    </label>
+
+    <button :disabled="!sel" class="mt-6 rounded-md bg-curtain px-6 py-3 font-bold text-paper enabled:hover:bg-[#c9304b] disabled:cursor-not-allowed disabled:opacity-40">Lock in this pick</button>
+  </form>
+</div>
+<script>
+  function picker() {
+    return {
+      q: "", results: [], sel: null, loading: false, err: "", t: null,
+      search() {
+        clearTimeout(this.t); this.sel = null;
+        if (this.q.trim().length < 2) { this.results = []; return; }
+        this.t = setTimeout(async () => {
+          this.loading = true; this.err = "";
+          try {
+            const r = await fetch("{% url 'api_search' %}?q=" + encodeURIComponent(this.q));
+            const d = await r.json();
+            if (!r.ok) throw new Error(d.error || "Search failed");
+            this.results = d.results;
+          } catch (e) { this.err = e.message; this.results = []; }
+          finally { this.loading = false; }
+        }, 300);
+      },
+      choose(r) { this.sel = r; this.results = []; this.q = r.title; }
+    }
+  }
+</script>
+{% endblock %}

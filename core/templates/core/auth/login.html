@@ -1,0 +1,20 @@
+{% extends "core/base.html" %}
+{% block title %}Log in · CinePair{% endblock %}
+{% block content %}
+<div class="mx-auto max-w-sm pt-10">
+  <h1 class="font-display text-5xl font-extrabold tracking-tight text-marquee">CinePair</h1>
+  <p class="mt-2 text-mute">Two people, one watchlist, one week to finish it.</p>
+  <form method="post" class="ticket mt-8 space-y-4 p-6">
+    {% csrf_token %}
+    {% if form.non_field_errors %}<p class="rounded bg-curtain/15 px-3 py-2 text-sm font-medium text-curtain">{{ form.non_field_errors.0 }}</p>{% endif %}
+    <label class="block text-sm font-medium">Username
+      <input name="username" value="{{ form.username.value|default:'' }}" autocomplete="username" required class="mt-1 w-full rounded border border-black/20 bg-white/70 px-3 py-2">
+    </label>
+    <label class="block text-sm font-medium">4-digit PIN
+      <input name="pin" type="password" inputmode="numeric" pattern="\d{4}" maxlength="4" autocomplete="current-password" required class="mt-1 w-full rounded border border-black/20 bg-white/70 px-3 py-2 tracking-[0.5em]">
+    </label>
+    <button class="w-full rounded-md bg-curtain py-2.5 font-bold text-paper hover:bg-[#c9304b]">Log in</button>
+  </form>
+  <p class="mt-4 text-sm text-mute">New here? <a href="{% url 'signup' %}" class="text-marquee underline">Create your account</a></p>
+</div>
+{% endblock %}

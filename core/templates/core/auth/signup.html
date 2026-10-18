@@ -1,0 +1,38 @@
+{% extends "core/base.html" %}
+{% load cine %}
+{% block title %}Sign up · CinePair{% endblock %}
+{% block content %}
+<div class="mx-auto max-w-sm pt-6">
+  <h1 class="font-display text-4xl font-extrabold tracking-tight">Create your account</h1>
+  <form method="post" class="ticket mt-6 space-y-4 p-6">
+    {% csrf_token %}
+    <label class="block text-sm font-medium">Username
+      <input name="username" value="{{ form.username.value|default:'' }}" autocomplete="username" required class="mt-1 w-full rounded border border-black/20 bg-white/70 px-3 py-2">
+      {% for e in form.username.errors %}<span class="text-sm text-curtain">{{ e }}</span>{% endfor %}
+    </label>
+    <label class="block text-sm font-medium">Name your partner will see
+      <input name="display_name" value="{{ form.display_name.value|default:'' }}" required maxlength="50" class="mt-1 w-full rounded border border-black/20 bg-white/70 px-3 py-2">
+      {% for e in form.display_name.errors %}<span class="text-sm text-curtain">{{ e }}</span>{% endfor %}
+    </label>
+    <fieldset>
+      <legend class="text-sm font-medium">Colour</legend>
+      <div class="mt-2 flex gap-3">
+        {% for c in colors %}
+        <label class="cursor-pointer"><input type="radio" name="avatar_color" value="{{ c }}" class="peer sr-only" {% if form.avatar_color.value == c or not form.avatar_color.value and forloop.first %}checked{% endif %}>
+          <span class="block h-8 w-8 rounded-full {{ c|avatar_bg }} ring-offset-2 ring-offset-paper peer-checked:ring-2 peer-checked:ring-[#2b1626] peer-focus-visible:ring-2"></span><span class="sr-only">{{ c }}</span></label>
+        {% endfor %}
+      </div>
+    </fieldset>
+    <label class="block text-sm font-medium">4-digit PIN
+      <input name="pin" type="password" inputmode="numeric" pattern="\d{4}" maxlength="4" autocomplete="new-password" required class="mt-1 w-full rounded border border-black/20 bg-white/70 px-3 py-2 tracking-[0.5em]">
+      {% for e in form.pin.errors %}<span class="text-sm text-curtain">{{ e }}</span>{% endfor %}
+    </label>
+    <label class="block text-sm font-medium">Confirm PIN
+      <input name="pin_confirm" type="password" inputmode="numeric" pattern="\d{4}" maxlength="4" autocomplete="new-password" required class="mt-1 w-full rounded border border-black/20 bg-white/70 px-3 py-2 tracking-[0.5em]">
+      {% for e in form.pin_confirm.errors %}<span class="text-sm text-curtain">{{ e }}</span>{% endfor %}
+    </label>
+    <button class="w-full rounded-md bg-curtain py-2.5 font-bold text-paper hover:bg-[#c9304b]">Create account</button>
+  </form>
+  <p class="mt-4 text-sm text-mute">Already have one? <a href="{% url 'login' %}" class="text-marquee underline">Log in</a></p>
+</div>
+{% endblock %}

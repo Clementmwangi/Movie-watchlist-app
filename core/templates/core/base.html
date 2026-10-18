@@ -1,0 +1,70 @@
+{% load cine %}<!doctype html>
+<html lang="en" class="bg-base">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="csrf-token" content="{{ csrf_token }}">
+  <title>{% block title %}CinePair{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script>
+    tailwind.config = { theme: { extend: {
+      colors: { base: '#221420', panel: '#2f1c2d', curtain: '#b3263f', marquee: '#f4c36a', paper: '#f2e8d5', mute: '#b09ba9' },
+      fontFamily: { display: ['"Bricolage Grotesque"', 'sans-serif'], sans: ['"DM Sans"', 'sans-serif'] }
+    } } }
+  </script>
+  <style>
+    :focus-visible { outline: 2px solid #f4c36a; outline-offset: 2px; }
+    .ticket { background: #f2e8d5; color: #2b1626; border-radius: 8px; }
+    .perf { position: relative; border-top: 2px dashed #c9b99a; margin: 0 14px; }
+    .perf::before, .perf::after { content: ""; position: absolute; top: -11px; width: 20px; height: 20px; border-radius: 50%; background: #221420; }
+    .perf::before { left: -24px; } .perf::after { right: -24px; }
+    .bar { transition: width .3s ease; }
+    @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+    [x-cloak] { display: none !important; }
+  </style>
+  <script>
+    function tracker(done, total, status) {
+      return {
+        done, total, status, error: "",
+        get pct() { return this.total ? Math.round(100 * this.done / this.total) : 0 },
+        async toggle(e, url) {
+          const el = e.target; el.disabled = true; this.error = "";
+          try {
+            const r = await fetch(url, { method: "POST", headers: { "X-CSRFToken": document.querySelector("meta[name=csrf-token]").content } });
+            if (!r.ok) throw new Error((await r.json()).error || "Request failed");
+            const d = await r.json();
+            this.done = d.done; this.status = d.status_label; el.checked = d.completed;
+            if (d.status === "completed") location.reload();
+          } catch (err) { el.checked = !el.checked; this.error = err.message || "Couldn't save that. Try again."; }
+          finally { el.disabled = false; }
+        }
+      }
+    }
+  </script>
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/cdn.min.js"></script>
+</head>
+<body class="min-h-screen bg-base font-sans text-paper antialiased">
+  {% if request.user.is_authenticated and request.user.profile %}
+  <header class="border-b border-white/10">
+    <nav class="mx-auto flex max-w-5xl items-center gap-6 px-4 py-4">
+      <a href="{% url 'dashboard' %}" class="font-display text-2xl font-extrabold tracking-tight text-marquee">CinePair</a>
+      <a href="{% url 'dashboard' %}" class="text-sm text-mute hover:text-paper">This week</a>
+      <a href="{% url 'history' %}" class="text-sm text-mute hover:text-paper">History</a>
+      <div class="ml-auto flex items-center gap-3">
+        <span class="flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold text-white {{ request.user.profile.avatar_color|avatar_bg }}">{{ request.user.profile.display_name|initial }}</span>
+        <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button class="text-sm text-mute hover:text-paper">Log out</button></form>
+      </div>
+    </nav>
+  </header>
+  {% endif %}
+  <main class="mx-auto max-w-5xl px-4 py-8">
+    {% for m in messages %}
+      <div class="mb-6 rounded-md border px-4 py-3 text-sm {% if m.tags == 'error' %}border-curtain bg-curtain/20{% else %}border-marquee/40 bg-marquee/10{% endif %}" role="status">{{ m }}</div>
+    {% endfor %}
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>
