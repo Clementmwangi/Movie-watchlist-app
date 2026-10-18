@@ -5,7 +5,7 @@
 
 <div class="mt-8 grid gap-8 md:grid-cols-2">
   <section>
-    <h2 class="mb-3 font-display text-lg font-semibold">Watching for {{ partner.display_name }}</h2>
+    <h2 class="mb-3 font-display text-lg font-semibold">Current movie: {{ partner.display_name }}</h2>
     {% if for_me %}
       {% include "core/_ticket.html" with pick=for_me role="for_you" profile=request.user.profile %}
     {% else %}
